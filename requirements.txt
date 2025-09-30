@@ -3,6 +3,5 @@ gunicorn
 sentence-transformers
 torch
 faiss-cpu
-faiss-gpu
 transformers
 numpy
