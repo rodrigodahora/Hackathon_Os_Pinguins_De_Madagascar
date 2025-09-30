@@ -1,3 +1,4 @@
+import os
 import re
 from flask import Flask, render_template, request
 from sentence_transformers import SentenceTransformer
@@ -35,7 +36,8 @@ def carregar_leis():
 # Criar índice FAISS
 # -------------------------
 def criar_indice(leis):
-    modelo = SentenceTransformer("./modelos/all-mpnet-base-v2")
+    # Usar modelo do Hugging Face Hub (não local)
+    modelo = SentenceTransformer("sentence-transformers/all-mpnet-base-v2")
     corpus = [f"{a['lei']} {a['titulo']} {a['texto']}" for a in leis]
     embeddings = modelo.encode(corpus, convert_to_numpy=True)
     dim = embeddings.shape[1]
@@ -54,7 +56,8 @@ def buscar_artigo(pergunta, modelo, index, leis, k=3):
 # -------------------------
 # Gerar resposta humanizada dinamicamente
 # -------------------------
-summarizer = pipeline("summarization", model="./modelos/bart-large-cnn")
+# Usar modelo do Hugging Face Hub
+summarizer = pipeline("summarization", model="facebook/bart-large-cnn")
 
 def gerar_resposta(resultados, pergunta):
     textos = [f"{r['lei']} - {r['titulo']}: {r['texto']}" for r in resultados]
@@ -63,11 +66,9 @@ def gerar_resposta(resultados, pergunta):
     # Resumir o conteúdo
     resumo = summarizer(concatenado, max_length=150, min_length=60, do_sample=False)[0]['summary_text']
 
-    # Transformar em frases humanizadas
     resposta_final = (
         f"Baseando-se na legislação relevante, aqui está o que encontramos:\n"
         f"{resumo}\n\n"
-        
     )
     return resposta_final
 
@@ -92,5 +93,5 @@ def home():
     return render_template("index.html", resposta=resposta, pergunta=pergunta)
 
 if __name__ == "__main__":
-    app.run(debug=False, use_reloader=False)
-
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=False, use_reloader=False)
